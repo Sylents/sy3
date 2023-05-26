@@ -41,7 +41,11 @@
 #endif
 
 #define HW_MAJOR				6
+#ifdef HW60_SY3
+#define HW_MINOR				1
+#else
 #define HW_MINOR				0
+#endif
 
 // HW properties
 #define HW_HAS_DRV8301
@@ -50,6 +54,10 @@
 #if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_MK6)
 #define HW_HAS_PERMANENT_NRF
 #endif
+
+// SYLENTS UPDATES
+#define HW_HAS_NO_CAN
+
 
 // Macros
 #ifdef HW60_VEDDER_FIRST_PCB
@@ -233,8 +241,7 @@
 #define CURR1_DOUBLE_SAMPLE		0
 #endif
 #ifndef CURR2_DOUBLE_SAMPLE
-#define CURR2_DOUBLE_SAMPLE		0
-#endif
+    #endif
 #ifndef CURR3_DOUBLE_SAMPLE
 #define CURR3_DOUBLE_SAMPLE		0
 #endif
@@ -275,13 +282,17 @@
 #define HW_ICU_GPIO				GPIOB
 #define HW_ICU_PIN				6
 
+// removed definition of I2CD2
 // I2C Peripheral
-#define HW_I2C_DEV				I2CD2
-#define HW_I2C_GPIO_AF			GPIO_AF_I2C2
-#define HW_I2C_SCL_PORT			GPIOB
-#define HW_I2C_SCL_PIN			10
-#define HW_I2C_SDA_PORT			GPIOB
-#define HW_I2C_SDA_PIN			11
+#define HW_USE_I2CD1
+#define HW_I2C_DEV I2CD1
+#define HW_I2C_GPIO_AF GPIO_AF_I2C1
+#define HW_I2C_SCL_PORT GPIOB
+#define HW_I2C_SCL_PIN 8
+#define HW_I2C_SDA_PORT GPIOB
+#define HW_I2C_SDA_PIN 9
+
+
 
 // Hall/encoder pins
 #define HW_HALL_ENC_GPIO1		GPIOC

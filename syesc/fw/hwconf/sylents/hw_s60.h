@@ -21,6 +21,7 @@
 #define HW_S60_H_
 
 #define HW60_IS_MK1
+#define HW60_SY3
 
 #include "hw_s60_core.h"
 

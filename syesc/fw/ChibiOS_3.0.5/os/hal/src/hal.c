@@ -67,7 +67,7 @@ void halInit(void) {
 #if (HAL_USE_ADC == TRUE) || defined(__DOXYGEN__)
   adcInit();
 #endif
-#if (HAL_USE_CAN == TRUE) || defined(__DOXYGEN__)
+#if (HAL_USE_CAN == TRUE) || defined(__DOXYGEN__)         // TODO remove CAN
   canInit();
 #endif
 #if (HAL_USE_DAC == TRUE) || defined(__DOXYGEN__)

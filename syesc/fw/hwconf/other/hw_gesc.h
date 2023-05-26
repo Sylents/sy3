@@ -170,7 +170,6 @@
 #define HW_ICU_PIN 7
 
 // I2C Peripheral
-// TODO Add I2C2 instead of CAN
 #define HW_USE_I2CD1
 #define HW_I2C_DEV I2CD1
 #define HW_I2C_GPIO_AF GPIO_AF_I2C1

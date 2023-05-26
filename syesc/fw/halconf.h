@@ -47,8 +47,9 @@
 /**
  * @brief   Enables the CAN subsystem.
  */
-#if !defined(HAL_USE_CAN) || defined(__DOXYGEN__)
+#if !defined(HAL_USE_CAN) || defined(__DOXYGEN__)           // TODO remove CAN
 #define HAL_USE_CAN                 TRUE
+//#define HAL_USE_CAN                 FALSE
 #endif
 
 /**

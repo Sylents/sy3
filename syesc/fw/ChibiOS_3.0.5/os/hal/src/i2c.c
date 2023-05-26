@@ -57,7 +57,8 @@
  * @init
  */
 void i2cInit(void) {
-
+  // TODO PB8 and PB9 i2c
+  // 
   i2c_lld_init();
 }
 

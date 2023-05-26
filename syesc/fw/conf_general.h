@@ -103,6 +103,7 @@
 #define CAN_ENABLE					1
 #endif
 
+// TODO disable CAN
 #ifdef HW_HAS_NO_CAN
 #undef CAN_ENABLE
 #define CAN_ENABLE 					0

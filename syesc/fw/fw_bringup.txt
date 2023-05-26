@@ -1,0 +1,16 @@
+# remove CAN
+HAL_USE_CAN:    in halconf.h
+
+CAN_ENABLE: wird im RESC hw_resc definiert.
+wird von HW_HAS_NO_CAN undefined
+
+HW_HAS_NO_CAN:  in hw_gesc.h and hw_spesc.h.
+it undefs CAN_ENABLE
+
+HAL_USE_CAN: in hal.c
+
+# move i2c pins to PB8 and PB9 i2c
+void i2cInit(void) in ChibiOS_3.0.5/os/hal/src/i2c.c
+// pins auf TODO PB8 and PB9 i2c
+
+HW_USE_I2CD1: in hw_gesc.h

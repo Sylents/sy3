@@ -57,6 +57,15 @@
 
 // SYLENTS UPDATES
 #define HW_HAS_NO_CAN
+// removed definition of I2CD2
+// I2C Peripheral
+#define HW_USE_I2CD1
+#define HW_I2C_DEV I2CD1
+#define HW_I2C_GPIO_AF GPIO_AF_I2C1
+#define HW_I2C_SCL_PORT GPIOB
+#define HW_I2C_SCL_PIN 8
+#define HW_I2C_SDA_PORT GPIOB
+#define HW_I2C_SDA_PIN 9
 
 
 // Macros
@@ -282,15 +291,6 @@
 #define HW_ICU_GPIO				GPIOB
 #define HW_ICU_PIN				6
 
-// removed definition of I2CD2
-// I2C Peripheral
-#define HW_USE_I2CD1
-#define HW_I2C_DEV I2CD1
-#define HW_I2C_GPIO_AF GPIO_AF_I2C1
-#define HW_I2C_SCL_PORT GPIOB
-#define HW_I2C_SCL_PIN 8
-#define HW_I2C_SDA_PORT GPIOB
-#define HW_I2C_SDA_PIN 9
 
 
 

@@ -14,3 +14,6 @@ void i2cInit(void) in ChibiOS_3.0.5/os/hal/src/i2c.c
 // pins auf TODO PB8 and PB9 i2c
 
 HW_USE_I2CD1: in hw_gesc.h
+HW_USE_I2CD1 // in hw_gesc.h
+#define STM32_I2C_USE_I2C1                  TRUE // in mcuconf.h
+

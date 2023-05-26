@@ -24,6 +24,7 @@ package_dict["46_o_47"] = [['46', default_name],
                     ['46_33k', 'VESC_33k.bin'],
                     ['46_0005ohm', 'VESC_0005ohm.bin']]
 package_dict["48"] = [['48', default_name]]
+package_dict["s60"] = [['s60', default_name]]
 package_dict["410_o_411_o_412"] = [['410', default_name],
                     ['410_no_limits', no_limits_name],
                     ['410_0005ohm', 'VESC_0005ohm.bin'],

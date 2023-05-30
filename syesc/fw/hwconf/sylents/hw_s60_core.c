@@ -26,6 +26,11 @@
 #include "commands.h"
 #include "mc_interface.h"
 
+// Threads
+THD_FUNCTION(display_thread, arg);
+static THD_WORKING_AREA(display_thread_wa, 256);
+static bool display_thread_running = false;
+
 // Variables
 static volatile bool i2c_running = false;
 #if defined(HW60_IS_MK3) || defined(HW60_IS_MK4) || defined(HW60_IS_MK5) || defined(HW60_IS_MK6)
@@ -211,6 +216,13 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, t_samp);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, t_samp);
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, t_samp);
+
+		// Setup i2c temperature sensor here
+	if (!display_thread_running) {
+		chThdCreateStatic(display_thread_wa, sizeof(display_thread_wa), NORMALPRIO, display_thread, NULL);
+		display_thread_running = true;
+	}
+
 }
 
 void hw_start_i2c(void) {
@@ -347,3 +359,30 @@ static void terminal_button_test(int argc, const char **argv) {
 	}
 }
 #endif
+
+THD_FUNCTION(display_thread, arg) {
+    (void)arg;
+
+    chRegSetThreadName("I2C Fixed Message Sender");
+
+    uint8_t txbuf[10] = {0};  // You can fill in your fixed message here
+    msg_t status = MSG_OK;
+    systime_t tmo = MS2ST(5);
+    i2caddr_t i2c_address = 0x48;  // Replace with your device address
+
+    hw_start_i2c();
+    chThdSleepMilliseconds(10);
+
+    for(;;) {
+        if (i2c_running) {
+            i2cAcquireBus(&HW_I2C_DEV);
+            status = i2cMasterTransmitTimeout(&HW_I2C_DEV, i2c_address, txbuf, sizeof(txbuf), NULL, 0, tmo);
+            i2cReleaseBus(&HW_I2C_DEV);
+
+            if (status != MSG_OK) {
+                hw_try_restore_i2c();
+            }
+        }
+        chThdSleepMilliseconds(100);
+    }
+}

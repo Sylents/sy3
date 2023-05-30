@@ -56,6 +56,8 @@
 #endif
 
 // SYLENTS UPDATES
+#define SYI2CDIS
+
 #define HW_HAS_NO_CAN
 // removed definition of I2CD2
 // I2C Peripheral

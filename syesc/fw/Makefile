@@ -98,6 +98,7 @@ help:
 	@echo "     PROJECT=<target> fw   - Build firmware for <target>"
 	@echo "     fw_<board>_clean     - Remove firmware for <board>"
 	@echo "     fw_<board>_flash     - Use OpenOCD + SWD/JTAG to write firmware to <target>"
+	@echo "     fw_<board>_drive    - Copy firmware files to DRIVEDIR"
 	@echo ""
 	@echo "   Hint: Add V=1 to your command line to see verbose build output."
 	@echo ""
@@ -198,6 +199,18 @@ debug-start:
 
 size: build/$(PROJECT).elf
 	@$(SZ) $<
+
+reset:
+	$(V1) openocd -f board/stm32f4discovery.cfg -c "reset_config trst_only combined"
+
+copy_files:
+	@echo off
+	set "DRIVEDIR=G:\Meine Ablage\VERVE\50 Development DEV\code"
+	set "SOURCE_DIR=.\build"
+
+	for /R "%SOURCE_DIR%" %F in (*.bin *.hex) do (
+	    xcopy /Y "%%F" "%DRIVEDIR%\"
+	)
 
 # Generate the targets for whatever boards are in each list
 FW_TARGETS := $(addprefix fw_, $(ALL_BOARD_NAMES))

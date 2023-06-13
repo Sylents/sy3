@@ -17,3 +17,14 @@ HW_USE_I2CD1: in hw_gesc.h
 HW_USE_I2CD1 // in hw_gesc.h
 #define STM32_I2C_USE_I2C1                  TRUE // in mcuconf.h
 
+i2c
+static volatile bool i2c_running = false; is defined in hw_s60_core.c
+i2c_running is set in hw_start_i2c
+   it is unset in hw_stop_i2c
+i2c_running is set by void hw_start_i2c(void)
+i2cAcquireBus(&HW_I2C_DEV); locks MUTEX
+i2cReleaseBus releases MUTEX
+
+LED
+LED_RED_ON und LED_RED_OFF funktionieren nicht richtig. die led blinkt immer nur kurz auf.
+wogegen bei ledpwm_set_intensity die LEDs funktionieren.

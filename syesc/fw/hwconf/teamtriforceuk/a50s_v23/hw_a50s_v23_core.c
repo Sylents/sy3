@@ -146,6 +146,9 @@ void hw_start_i2c(void) {
 }
 
 void hw_stop_i2c(void) {
+
+//	return void;
+	
 	i2cAcquireBus(&HW_I2C_DEV);
 
 	if (i2c_running) {

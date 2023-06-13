@@ -250,6 +250,10 @@ void hw_start_i2c(void) {
 void hw_stop_i2c(void) {
 	i2cAcquireBus(&HW_I2C_DEV);
 
+/* fix
+	i2c_running = true;
+	return;
+*/
 	if (i2c_running) {
 		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, PAL_MODE_INPUT);
 		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN, PAL_MODE_INPUT);
@@ -365,7 +369,7 @@ THD_FUNCTION(display_thread, arg) {
 
     chRegSetThreadName("I2C Fixed Message Sender");
 
-    uint8_t txbuf[10] = {0};  // You can fill in your fixed message here
+    uint8_t txbuf[2];  // You can fill in your fixed message here
     msg_t status = MSG_OK;
     systime_t tmo = MS2ST(5);
     i2caddr_t i2c_address = 0x48;  // Replace with your device address
@@ -374,15 +378,26 @@ THD_FUNCTION(display_thread, arg) {
     chThdSleepMilliseconds(10);
 
     for(;;) {
-        if (i2c_running) {
-            i2cAcquireBus(&HW_I2C_DEV);
-            status = i2cMasterTransmitTimeout(&HW_I2C_DEV, i2c_address, txbuf, sizeof(txbuf), NULL, 0, tmo);
-            i2cReleaseBus(&HW_I2C_DEV);
+//		if (i2c_running) {
+			LED_GREEN_OFF();
 
-            if (status != MSG_OK) {
-                hw_try_restore_i2c();
-            }
-        }
-        chThdSleepMilliseconds(100);
-    }
+			txbuf[0] = 0x0c;
+			txbuf[1] = 0x0d;
+			i2cAcquireBus(&HW_I2C_DEV);
+			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, i2c_address, txbuf, 2, NULL, 0, tmo);
+			i2cReleaseBus(&HW_I2C_DEV);
+
+			if (status == MSG_OK) {
+
+			} else {
+				hw_try_restore_i2c();
+				LED_RED_ON();
+			}
+//		}
+		chThdSleepMilliseconds(100);
+
+	}
 }
+
+
+// 

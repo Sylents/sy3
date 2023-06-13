@@ -203,7 +203,7 @@ void hw_setup_adc_channels(void) {
 	}
 }
 
-void hw_start_i2c(void) {
+void hw_start_i2c(void) { 
 	i2cAcquireBus(&HW_I2C_DEV);
 
 	if (!i2c_running) {

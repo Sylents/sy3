@@ -22,9 +22,9 @@
 
 // Firmware version
 #define FW_VERSION_MAJOR			6
-#define FW_VERSION_MINOR			05
+#define FW_VERSION_MINOR			07
 // Set to 0 for building a release and iterate during beta test builds
-#define FW_TEST_VERSION_NUMBER		8
+#define FW_TEST_VERSION_NUMBER		1
 
 #include "datatypes.h"
 

@@ -17,28 +17,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
-#ifndef HW_60_CORE_H_
-#define HW_60_CORE_H_
+#ifndef HW_S60_CORE_H_
+#define HW_S60_CORE_H_
 
-#ifdef HW60_IS_MK3
-#define HW_NAME					"60_MK3"
-#elif defined(HW60_IS_MK4)
-#define HW_NAME					"60_MK4"
-#elif defined(HW60_IS_MK5)
-#define HW_NAME					"60_MK5"
-#elif defined(HW60_IS_MK6)
-#ifdef HW60_IS_HP
-#define HW_NAME					"60_MK6_HP"
-#elif defined(HW60_IS_MAX)
-#define HW_NAME					"60_MK6_MAX"
-#else
-#define HW_NAME					"60_MK6"
-#endif
-#elif defined(HW60_IS_MK1)
-#define HW_NAME					"60"
-#else
-#error "Must include hardware type"
-#endif
+#define HW_NAME "S60"
+
 
 #define HW_MAJOR				6
 #ifdef HW60_SY3
@@ -456,4 +439,4 @@
 bool hw_sample_shutdown_button(void);
 #endif
 
-#endif /* HW_60_CORE_H_ */
+#endif /* HW_S60_CORE_H_ */

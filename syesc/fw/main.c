@@ -112,7 +112,9 @@ static THD_FUNCTION(led_thread, arg) {
 		mc_interface_select_motor_thread(2);
 		mc_state state2 = mc_interface_get_state();
 		mc_interface_select_motor_thread(1);
-		if ((state1 == MC_STATE_RUNNING) || (state2 == MC_STATE_RUNNING)) {
+		if ((state1 == MC_STATE_RUNNING) || (state2 == MC_STATE_RUNNING)
+//			|| (i2c_running == 0x01) 
+			) {
 			ledpwm_set_intensity(LED_GREEN, 1.0);
 		} else {
 			ledpwm_set_intensity(LED_GREEN, 0.2);
@@ -250,6 +252,7 @@ int main(void) {
 		}
 	}
 
+
 	ledpwm_init();
 	mc_interface_init();
 
@@ -329,3 +332,4 @@ int main(void) {
 		chThdSleepMilliseconds(10);
 	}
 }
+

@@ -225,53 +225,76 @@ void hw_setup_adc_channels(void) {
 
 }
 
-void hw_start_i2c(void) {
-	i2cAcquireBus(&HW_I2C_DEV);
 
-	if (!i2c_running) {
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
-				PAL_MODE_ALTERNATE(HW_I2C_GPIO_AF) |
-				PAL_STM32_OTYPE_OPENDRAIN |
-				PAL_STM32_OSPEED_MID1 |
-				PAL_STM32_PUDR_PULLUP);
+void sw_init_i2c(void) {
 
-		i2cStart(&HW_I2C_DEV, &i2cfg);
-		i2c_running = true;
-	}
+	palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL);
+	palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL);
 
-	i2cReleaseBus(&HW_I2C_DEV);
+	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+
+	i2c_running = true;
+}
+
+
+void sw_start_i2c(void) {
+	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	i2c_running = true;
 }
 
 void hw_stop_i2c(void) {
-	i2cAcquireBus(&HW_I2C_DEV);
-
-/* fix
-	i2c_running = true;
 	return;
-*/
-	if (i2c_running) {
-		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN, PAL_MODE_INPUT);
-		palSetPadMode(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN, PAL_MODE_INPUT);
+}
 
-		i2cStop(&HW_I2C_DEV);
-		i2c_running = false;
-
-	}
-
-	i2cReleaseBus(&HW_I2C_DEV);
+void sw_stop_i2c(void) {
+	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	i2c_running = false;
 }
 
 /**
  * Try to restore the i2c bus
  */
-void hw_try_restore_i2c(void) {
+int swi2cMasterTransmitByte(uint8_t data){
+
+//	sw_start_i2c();
+	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	chThdSleepMicroseconds(50);
+	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	chThdSleepMicroseconds(50);
+	palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	chThdSleepMicroseconds(50);
+	palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	chThdSleepMicroseconds(50);
+	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	chThdSleepMicroseconds(50);
+	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	chThdSleepMicroseconds(50);
+	palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	chThdSleepMicroseconds(50);
+	palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+	chThdSleepMicroseconds(50);
+	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
+	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+
+	return 0;
+}
+
+void sw_try_restore_i2c(void) {
 	if (i2c_running) {
-		i2cAcquireBus(&HW_I2C_DEV);
+//		i2cAcquireBus(&HW_I2C_DEV);
 
 		palSetPadMode(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN,
 				PAL_STM32_OTYPE_OPENDRAIN |
@@ -316,10 +339,10 @@ void hw_try_restore_i2c(void) {
 				PAL_STM32_OSPEED_MID1 |
 				PAL_STM32_PUDR_PULLUP);
 
-		HW_I2C_DEV.state = I2C_STOP;
-		i2cStart(&HW_I2C_DEV, &i2cfg);
+//		HW_I2C_DEV.state = I2C_STOP;
+//		i2cStart(&HW_I2C_DEV, &i2cfg);
 
-		i2cReleaseBus(&HW_I2C_DEV);
+//		i2cReleaseBus(&HW_I2C_DEV);
 	}
 }
 
@@ -371,30 +394,19 @@ THD_FUNCTION(display_thread, arg) {
 
     uint8_t txbuf[2];  // You can fill in your fixed message here
     msg_t status = MSG_OK;
-    systime_t tmo = MS2ST(5);
-    i2caddr_t i2c_address = 0x48;  // Replace with your device address
-
-    hw_start_i2c();
+    sw_init_i2c();
     chThdSleepMilliseconds(10);
 
     for(;;) {
-//		if (i2c_running) {
-			LED_GREEN_OFF();
+		LED_GREEN_OFF();
+		LED_GREEN_OFF();
 
-			txbuf[0] = 0x0c;
-			txbuf[1] = 0x0d;
-			i2cAcquireBus(&HW_I2C_DEV);
-			status = i2cMasterTransmitTimeout(&HW_I2C_DEV, i2c_address, txbuf, 2, NULL, 0, tmo);
-			i2cReleaseBus(&HW_I2C_DEV);
+		txbuf[0] = 0x0c;
+		txbuf[1] = 0x0d;
 
-			if (status == MSG_OK) {
-
-			} else {
-				hw_try_restore_i2c();
-				LED_RED_ON();
-			}
-//		}
+		swi2cMasterTransmitByte(0x55);
 		chThdSleepMilliseconds(100);
+		LED_GREEN_ON();
 
 	}
 }

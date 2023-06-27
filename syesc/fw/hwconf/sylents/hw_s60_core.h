@@ -46,12 +46,17 @@
 // I2C Peripheral
 //#define HW_USE_I2CD1
 //#define HW_I2C_DEV I2CD1
-#define HW_I2C_GPIO_AF GPIO_AF_I2C1
+#define HW_I2C_GPIO_AF GPIO_AF_I2C1 
+#define HW_I2C_SCL_PORT GPIOC
+#define HW_I2C_SCL_PIN 6
+#define HW_I2C_SDA_PORT GPIOC
+#define HW_I2C_SDA_PIN 7
+/*
 #define HW_I2C_SCL_PORT GPIOB
 #define HW_I2C_SCL_PIN 8
 #define HW_I2C_SDA_PORT GPIOB
 #define HW_I2C_SDA_PIN 9
-
+*/
 
 // Macros
 #ifdef HW60_VEDDER_FIRST_PCB
@@ -280,10 +285,16 @@
 
 
 // Hall/encoder pins
-#define HW_HALL_ENC_GPIO1		GPIOC
+/*
+#define HW_HALL_ENC_GPIO1		GPIOC 
 #define HW_HALL_ENC_PIN1		6
 #define HW_HALL_ENC_GPIO2		GPIOC
 #define HW_HALL_ENC_PIN2		7
+*/
+#define HW_HALL_ENC_GPIO1		GPIOB
+#define HW_HALL_ENC_PIN1		8
+#define HW_HALL_ENC_GPIO2		GPIOB
+#define HW_HALL_ENC_PIN2		9
 #define HW_HALL_ENC_GPIO3		GPIOC
 #define HW_HALL_ENC_PIN3		8
 #define HW_ENC_TIM				TIM3
@@ -300,7 +311,7 @@
 #if !defined(HW60_IS_MK3) && !defined(HW60_IS_MK4) && !defined(HW60_IS_MK5) && !defined(HW60_IS_MK6)
 // NRF pins
 #define NRF_PORT_CSN			GPIOB
-#define NRF_PIN_CSN				12
+#define   _PIN_CSN				12
 #define NRF_PORT_SCK			GPIOB
 #define NRF_PIN_SCK				4
 #define NRF_PORT_MOSI			GPIOB

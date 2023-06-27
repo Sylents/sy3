@@ -25,6 +25,7 @@
 #include "terminal.h"
 #include "commands.h"
 #include "mc_interface.h"
+#include "syled.h"
 
 // Threads
 THD_FUNCTION(display_thread, arg);
@@ -259,37 +260,90 @@ void sw_stop_i2c(void) {
 /**
  * Try to restore the i2c bus
  */
-int swi2cMasterTransmitByte(uint8_t data){
+#define HIGH 1
+#define LOW 0
 
-//	sw_start_i2c();
-	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-	chThdSleepMicroseconds(50);
-	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-	chThdSleepMicroseconds(50);
-	palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-	chThdSleepMicroseconds(50);
-	palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-	chThdSleepMicroseconds(50);
-	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-	chThdSleepMicroseconds(50);
-	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-	chThdSleepMicroseconds(50);
-	palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-	chThdSleepMicroseconds(50);
-	palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
-	chThdSleepMicroseconds(50);
-	palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN);
-	palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN);
+#define setSCLK()    palSetPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN)
+#define clearSCLK()  palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN)
+#define setSDIO()    palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN)
+#define clearSDIO()  palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN)
+#define SCLKSPEED	 50
 
-	return 0;
+void swi2cMasterTransmitByteNoStop(uint8_t data){
+    uint8_t i;
+
+    // Bit banging the data byte, LSB first
+    for (i = 0; i < 8; i++) {
+        // Ensure CLK is low before changing data
+        clearSCLK();
+        chThdSleepMicroseconds(SCLKSPEED/10);
+
+        if (data & 0x01) {
+            setSDIO();
+        } else {
+            clearSDIO();
+        }
+        // Shift to next bit
+        data >>= 1;
+        chThdSleepMicroseconds(SCLKSPEED);
+
+        // After setting data, set CLK high to send
+        setSCLK();
+        chThdSleepMicroseconds(SCLKSPEED);
+    }
+}
+
+
+void swi2cMasterTransmitByte(uint8_t data){
+    // Start condition: when CLK is high, the DIN becomes low from high
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    // Transmit data
+    swi2cMasterTransmitByteNoStop(data);
+
+    // End condition: when CLK is high, the DIN becomes high from low
+    clearSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    setSDIO();
+}
+
+
+int swi2cMasterTransmitBytes(uint8_t addr, uint8_t numofbytes, uint8_t values[]){
+    uint8_t i;
+
+    // Start condition: when CLK is high, the DIN becomes low from high
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    // Transmit address/command
+    swi2cMasterTransmitByteNoStop(TM1640_ADDR_COMMAND | addr);
+
+    // Transmit data bytes
+    for (i = 0; i < numofbytes; i++) {
+        swi2cMasterTransmitByteNoStop(values[i]);
+    }
+
+    // End condition: when CLK is high, the DIN becomes high from low
+    clearSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    setSDIO();
+
+    return 0;
 }
 
 void sw_try_restore_i2c(void) {
@@ -390,23 +444,38 @@ static void terminal_button_test(int argc, const char **argv) {
 THD_FUNCTION(display_thread, arg) {
     (void)arg;
 
-    chRegSetThreadName("I2C Fixed Message Sender");
+    chRegSetThreadName("SW_I2C Display");
 
-    uint8_t txbuf[2];  // You can fill in your fixed message here
-    msg_t status = MSG_OK;
+	uint8_t txbuf[] = {0xFF, 0xAA, 0x55, 0x80};
+	uint8_t addr = 0;
+
     sw_init_i2c();
     chThdSleepMilliseconds(10);
 
+	// Set Data Addr Increase Mode
+	swi2cMasterTransmitByte(TM1640_DATA_COMMAND
+						  | TM1640_DATA_CINC);
+	// Turn Display On
+	swi2cMasterTransmitByte(TM1640_DISP_COMMAND
+						  | TM1640_DISP_CON
+						  | TM1640_DISP_BRIGHTNESS_7);
+
+
     for(;;) {
-		LED_GREEN_OFF();
-		LED_GREEN_OFF();
 
-		txbuf[0] = 0x0c;
-		txbuf[1] = 0x0d;
+		// set 
 
-		swi2cMasterTransmitByte(0x55);
-		chThdSleepMilliseconds(100);
-		LED_GREEN_ON();
+		chThdSleepMilliseconds(150);
+		swi2cMasterTransmitBytes(addr++ & 0xF, 3, txbuf);
+
+		chThdSleepMilliseconds(150);
+		// Set Data Addr Increase Mode
+		swi2cMasterTransmitByte(TM1640_DATA_COMMAND
+							| TM1640_DATA_CINC);
+		// Turn Display On
+		swi2cMasterTransmitByte(TM1640_DISP_COMMAND
+							| TM1640_DISP_CON
+							| TM1640_DISP_BRIGHTNESS_7);
 
 	}
 }

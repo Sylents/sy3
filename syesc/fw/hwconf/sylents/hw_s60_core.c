@@ -267,7 +267,7 @@ void sw_stop_i2c(void) {
 #define clearSCLK()  palClearPad(HW_I2C_SCL_PORT, HW_I2C_SCL_PIN)
 #define setSDIO()    palSetPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN)
 #define clearSDIO()  palClearPad(HW_I2C_SDA_PORT, HW_I2C_SDA_PIN)
-#define SCLKSPEED	 50
+#define SCLKSPEED	 25
 
 void swi2cMasterTransmitByteNoStop(uint8_t data){
     uint8_t i;
@@ -446,38 +446,38 @@ THD_FUNCTION(display_thread, arg) {
 
     chRegSetThreadName("SW_I2C Display");
 
-	uint8_t txbuf[] = {0xFF, 0xAA, 0x55, 0x80};
-	uint8_t addr = 0;
+    uint8_t txbuf = 0x00;
+    uint8_t addr = 0;
 
     sw_init_i2c();
     chThdSleepMilliseconds(10);
 
-	// Set Data Addr Increase Mode
-	swi2cMasterTransmitByte(TM1640_DATA_COMMAND
-						  | TM1640_DATA_CINC);
-	// Turn Display On
-	swi2cMasterTransmitByte(TM1640_DISP_COMMAND
-						  | TM1640_DISP_CON
-						  | TM1640_DISP_BRIGHTNESS_7);
+    // Set Data Addr Increase Mode
+    swi2cMasterTransmitByte(TM1640_DATA_COMMAND | TM1640_DATA_CINC);
+    // Turn Display On
+    swi2cMasterTransmitByte(TM1640_DISP_COMMAND | TM1640_DISP_CON | TM1640_DISP_BRIGHTNESS_7);
 
+    for (;;) {
+        chThdSleepMilliseconds(100);
+        
+        // Clear the previous Row data
+        swi2cMasterTransmitBytes(addr & 0xF, 1, &txbuf);
+        
+        // Set the new address data
+        if (txbuf == 0x0)
+			{
+				txbuf = 0x01;
+				addr++;
+				if (addr >= SIZE_MATRIX_COL) {
+					addr = 0;
+				}
+			}
+		else
+			{
+				txbuf = txbuf<<1;
+			}
 
-    for(;;) {
-
-		// set 
-
-		chThdSleepMilliseconds(150);
-		swi2cMasterTransmitBytes(addr++ & 0xF, 3, txbuf);
-
-		chThdSleepMilliseconds(150);
-		// Set Data Addr Increase Mode
-		swi2cMasterTransmitByte(TM1640_DATA_COMMAND
-							| TM1640_DATA_CINC);
-		// Turn Display On
-		swi2cMasterTransmitByte(TM1640_DISP_COMMAND
-							| TM1640_DISP_CON
-							| TM1640_DISP_BRIGHTNESS_7);
-
-	}
+    }
 }
 
 

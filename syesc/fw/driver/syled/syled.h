@@ -39,7 +39,8 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 
 #define TM1640_DISP_COFF      	        0x00
 #define TM1640_DISP_CON      	        0x08
-#define TM1640_DISP_BRIGHTNESS_7        0x04
+#define TM1640_DISP_BRIGHTNESS_4        0x03
+#define TM1640_DISP_BRIGHTNESS_8        0x07
 
 #define SIZE_MATRIX_COL		            11
 #define SIZE_MATRIX_ROW		            8
@@ -74,6 +75,9 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 #define SLED_DTYPE_PERCENT              (1<<2)
 #define SLED_DTYPE_VOLT					(1<<3)
 #define SLED_DTYPE_TIME					(1<<4)
+
+
+
 
 
 // Segment bit positions for 7 Segment display using the LM1640 mapping for TM1640
@@ -115,20 +119,22 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 #define C7_9    (S7_A | S7_B | S7_C | S7_D | S7_F | S7_G)
 #define C7_NULL  0x00
 
+extern const unsigned char ledsegments[SIZE_MATRIX_COL];
 
-const unsigned char segments[11] = {
-    C7_0,  // digit 0
-    C7_1,  // digit 1
-    C7_2,  // digit 2
-    C7_3,  // digit 3
-    C7_4,  // digit 4
-    C7_5,  // digit 5
-    C7_6,  // digit 6
-    C7_7,  // digit 7
-    C7_8,  // digit 8
-    C7_9,  // digit 9
-    C7_NULL  // NULL
-};
+
+#define ULED_MSB   4
+
+// Function prototype for intToDigits()
+size_t intToDigits(uint32_t number, uint8_t* digits);
+size_t countDigits(uint32_t number);
+
+
+typedef struct {
+	float v_in;
+	int32_t tacho_value;
+	int32_t mc_interface_get_battery_level;
+} led_data_t;
+
 
 
 #endif /* SYLED_H_ */

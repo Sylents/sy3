@@ -45,27 +45,18 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 #define SIZE_MATRIX_COL		            11
 #define SIZE_MATRIX_ROW		            8
 
-// Battery status
-#define SLED_BATT_COLUM				     0x03
-#define SLED_BATT_NONE					(0x00)
-#define SLED_BATT_100				    (0x00_1F<<0)
-#define SLED_BATT_80				    (0x00_0F<<0)
-#define SLED_BATT_60				    (0x00_07<<0)
-#define SLED_BATT_40				    (0x00_03<<0)
-#define SLED_BATT_20				    (0x00_01<<0)
-#define SLED_BATT_0 				    (0x00_00<<0)
-#define SLED_BATT_HULL 				    (0x3F_60<<0)
 
 // Battery status
 #define SLED_STATUS_COLUM				 0x04
+
 #define SLED_BATT_NONE					(0x00)
-#define SLED_BATT_100				    (0x00_1F<<0)
-#define SLED_BATT_80				    (0x00_0F<<0)
-#define SLED_BATT_60				    (0x00_07<<0)
-#define SLED_BATT_40				    (0x00_03<<0)
-#define SLED_BATT_20				    (0x00_01<<0)
-#define SLED_BATT_0 				    (0x00_00<<0)
-#define SLED_BATT_HULL 				    (0x3F_60<<0)
+#define SLED_BATT_100				    (0x001F<<0)
+#define SLED_BATT_80				    (0x001E<<0) | SLED_BATT_60	| SLED_BATT_40	| SLED_BATT_20	| SLED_BATT_0
+#define SLED_BATT_60				    (0x001C<<0) | SLED_BATT_40	| SLED_BATT_20	| SLED_BATT_0
+#define SLED_BATT_40				    (0x0018<<0) | SLED_BATT_20	| SLED_BATT_0
+#define SLED_BATT_20				    (0x0010<<0) | SLED_BATT_0
+#define SLED_BATT_0 				    (0x0000<<0)
+#define SLED_BATT_HULL 				    (0xF360<<0)
 
 // Decimal Type
 #define SLED_DTYPE_COLUMN				 0x08
@@ -123,6 +114,8 @@ extern const unsigned char ledsegments[SIZE_MATRIX_COL];
 
 
 #define ULED_MSB   4
+#define LLED_MSB   8
+#define BATLED_MSB   0
 
 // Function prototype for intToDigits()
 size_t intToDigits(uint32_t number, uint8_t* digits);

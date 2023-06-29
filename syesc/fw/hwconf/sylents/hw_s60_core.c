@@ -353,9 +353,6 @@ int swi2cMasterLedDigitsUpper(uint32_t digits){
 	uint8_t txbuf[4];
 	memset(txbuf, 0, 4 * sizeof(uint8_t));
 
-	uint8_t digitmsbaddr = 4;
-	uint8_t digitlsbaddr = 7;
-
 	uint8_t numofbytes = intToDigits(digits, txbuf);
 	// txbuf now holds the digits in the correct order
 	// set the upper digits to zero
@@ -393,6 +390,72 @@ int swi2cMasterLedDigitsUpper(uint32_t digits){
     return 0;
 }
 
+
+int swi2cMasterLedDigitsLower(uint32_t digits){
+    uint8_t i;
+	uint8_t txbuf[3];
+	memset(txbuf, 0, 3 * sizeof(uint8_t));
+
+	uint8_t numofbytes = intToDigits(digits, txbuf);
+	// txbuf now holds the digits in the correct order
+	// set the upper digits to zero
+	for (i = numofbytes; i < 3; i++) {
+		txbuf[i] = 0;
+	}
+
+    // Start condition: when CLK is high, the DIN becomes low from high
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    // Transmit address/command
+    swi2cMasterTransmitByteNoStop(TM1640_ADDR_COMMAND | LLED_MSB);
+
+    // Transmit data bytes
+    for (i = 0; i < 3; i++) {
+        if (i < (3-numofbytes)) 
+			swi2cMasterTransmitByteNoStop(0);
+		else	
+        	swi2cMasterTransmitByteNoStop(txbuf[i-(3-numofbytes)]);
+    }
+
+    // End condition: when CLK is high, the DIN becomes high from low
+    clearSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    setSDIO();
+
+    return 0;
+}
+
+int swi2cMasterLedBattLevel(uint32_t level){
+	uint8_t txbuf[2];
+	
+    if (level > 0 && level <= 20) {
+        txbuf[0] = SLED_BATT_20;
+    } else if (level > 20 && level <= 40) {
+        txbuf[0] = SLED_BATT_40;
+    } else if (level > 40 && level <= 60) {
+        txbuf[0] = SLED_BATT_60;
+    } else if (level > 60 && level <= 80) {
+        txbuf[0] = SLED_BATT_80;
+    } else if (level > 80 && level <= 100) {
+        txbuf[0] = SLED_BATT_100;
+    } else {
+        txbuf[0] = SLED_BATT_0;
+    }
+
+	txbuf[0] |= (SLED_BATT_HULL & 0xFF);	// mask in
+	txbuf[1] = 0 | ((SLED_BATT_HULL>>8) & 0xFF);	// mask in 
+	swi2cMasterTransmitBytes(BATLED_MSB, 2, txbuf);
+
+	return 0;
+}
 
 
 void sw_try_restore_i2c(void) {
@@ -532,7 +595,8 @@ THD_FUNCTION(display_thread, arg) {
         chThdSleepMilliseconds(250);
 
 		swi2cMasterLedDigitsUpper(number++);
-        
+		swi2cMasterLedDigitsLower(number++);
+		swi2cMasterLedBattLevel(number % 100);
 
     }
 }

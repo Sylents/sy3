@@ -360,6 +360,7 @@ int swi2cMasterLedDigitsUpper(uint32_t digits){
 		txbuf[i] = 0;
 	}
 
+
     // Start condition: when CLK is high, the DIN becomes low from high
     setSCLK();
     chThdSleepMicroseconds(SCLKSPEED);
@@ -369,6 +370,11 @@ int swi2cMasterLedDigitsUpper(uint32_t digits){
     // Transmit address/command
     swi2cMasterTransmitByteNoStop(TM1640_ADDR_COMMAND | ULED_MSB);
 
+	if (digits == 0)
+	{
+		txbuf[0] = C7_0;
+		numofbytes = 1;
+	}
     // Transmit data bytes
     for (i = 0; i < 4; i++) {
         if (i < (4-numofbytes)) 
@@ -411,6 +417,12 @@ int swi2cMasterLedDigitsLower(uint32_t digits){
 
     // Transmit address/command
     swi2cMasterTransmitByteNoStop(TM1640_ADDR_COMMAND | LLED_MSB);
+
+	if (digits == 0)
+	{
+		txbuf[0] = C7_0;
+		numofbytes = 1;
+	}
 
     // Transmit data bytes
     for (i = 0; i < 3; i++) {
@@ -578,25 +590,46 @@ THD_FUNCTION(display_thread, arg) {
 
     chRegSetThreadName("SW_I2C Display");
 
-//    uint8_t txbuf[SIZE_MATRIX_COL];
-//    uint8_t addr = 4;
-//	size_t numofdigits = 4;
-	uint32_t number = 0;
+	float voltage = 0;
+	float watt = 0;
+	float level = 0;
+	float duty = 0;
+	uint8_t txbuf[1];
+
+    volatile mc_configuration *mcconf = (volatile mc_configuration*) mc_interface_get_configuration();
 
     sw_init_i2c();
     chThdSleepMilliseconds(10);
 	sw_init_i2cdisplay();    // Set Data Addr Increase Mode
-
-	number = 90;
-//	uint8_t length = intToDigits(number, txbuf);
-//	swi2cMasterTransmitBytes(addr, length, txbuf);
+    chThdSleepMilliseconds(10);
+	txbuf[0] = SLED_DTYPE_W;// |
+			//SLED_DTYPE_KMH | 
+			//SLED_DTYPE_PERCENT |  
+			//SLED_DTYPE_VOLT;
+	swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
 
     for (;;) {
         chThdSleepMilliseconds(250);
 
-		swi2cMasterLedDigitsUpper(number++);
-		swi2cMasterLedDigitsLower(number++);
-		swi2cMasterLedBattLevel(number % 100);
+		// get input voltage
+		voltage = mc_interface_get_input_voltage_filtered();
+		watt = mc_interface_get_tot_current_in_filtered() * voltage;
+		duty = mc_interface_get_duty_cycle_now();
+		uint32_t vmin = (uint32_t) mcconf->l_min_vin;
+		uint32_t vmax = (uint32_t) mcconf->l_max_vin;
+
+		// get battery level from voltage
+		if (voltage < vmin) {
+			level = 0.0f;
+		} else if ((voltage >= vmin) && (voltage <= vmax) ){
+			level = (voltage - vmin) * 100.0f / (vmax - vmin);
+		} else {
+			level = 100.0f;
+		}
+
+		swi2cMasterLedDigitsUpper( (uint32_t) watt );
+		swi2cMasterLedBattLevel( (uint32_t)level );
+		swi2cMasterLedDigitsLower( (uint32_t) duty );
 
     }
 }

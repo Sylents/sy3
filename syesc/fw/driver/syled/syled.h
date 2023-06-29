@@ -51,15 +51,15 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 
 #define SLED_BATT_NONE					(0x00)
 #define SLED_BATT_100				    (0x001F<<0)
-#define SLED_BATT_80				    (0x001E<<0) | SLED_BATT_60	| SLED_BATT_40	| SLED_BATT_20	| SLED_BATT_0
-#define SLED_BATT_60				    (0x001C<<0) | SLED_BATT_40	| SLED_BATT_20	| SLED_BATT_0
-#define SLED_BATT_40				    (0x0018<<0) | SLED_BATT_20	| SLED_BATT_0
-#define SLED_BATT_20				    (0x0010<<0) | SLED_BATT_0
+#define SLED_BATT_80				    (0x001E<<0)
+#define SLED_BATT_60				    (0x001C<<0)
+#define SLED_BATT_40				    (0x0018<<0)
+#define SLED_BATT_20				    (0x0010<<0)
 #define SLED_BATT_0 				    (0x0000<<0)
 #define SLED_BATT_HULL 				    (0xF360<<0)
 
 // Decimal Type
-#define SLED_DTYPE_COLUMN				 0x08
+#define SLED_DTYPE_COLUMN				 3
 #define SLED_DTYPE_NONE					(0x00)
 #define SLED_DTYPE_W					(1<<0)
 #define SLED_DTYPE_KMH					(1<<1)

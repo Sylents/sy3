@@ -613,8 +613,8 @@ THD_FUNCTION(display_thread, arg) {
 
 		// get input voltage
 		voltage = mc_interface_get_input_voltage_filtered();
-		watt = mc_interface_get_tot_current_in_filtered() * voltage;
-		duty = mc_interface_get_duty_cycle_now();
+		watt = (mc_interface_get_tot_current_in_filtered() * voltage)/10.0f;
+		duty = mc_interface_get_duty_cycle_now()*100.0f;
 		uint32_t vmin = (uint32_t) mcconf->l_min_vin;
 		uint32_t vmax = (uint32_t) mcconf->l_max_vin;
 
@@ -627,7 +627,7 @@ THD_FUNCTION(display_thread, arg) {
 			level = 100.0f;
 		}
 
-		swi2cMasterLedDigitsUpper( (uint32_t) watt );
+		swi2cMasterLedDigitsUpper( (uint32_t) watt*10 );
 		swi2cMasterLedBattLevel( (uint32_t)level );
 		swi2cMasterLedDigitsLower( (uint32_t) duty );
 

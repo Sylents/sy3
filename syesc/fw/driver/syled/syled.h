@@ -56,7 +56,7 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 #define SLED_BATT_40				    (0x0018<<0)
 #define SLED_BATT_20				    (0x0010<<0)
 #define SLED_BATT_0 				    (0x0000<<0)
-#define SLED_BATT_HULL 				    (0xF360<<0)
+#define SLED_BATT_HULL 				    (0x3F60<<0)
 
 // Decimal Type
 #define SLED_DTYPE_COLUMN				 3

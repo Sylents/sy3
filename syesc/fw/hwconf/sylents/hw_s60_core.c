@@ -594,6 +594,12 @@ THD_FUNCTION(display_thread, arg) {
 	float watt = 0;
 	float level = 0;
 	float duty = 0;
+	uint32_t prevVoltageInt = 0;
+	uint32_t prevWattInt = 0;
+	uint32_t prevDutyInt = 0;
+	uint32_t voltageInt = 0;
+    uint32_t wattInt = 0;
+    uint32_t dutyInt = 0;
 	uint8_t txbuf[1];
 
     volatile mc_configuration *mcconf = (volatile mc_configuration*) mc_interface_get_configuration();
@@ -608,30 +614,44 @@ THD_FUNCTION(display_thread, arg) {
 			//SLED_DTYPE_VOLT;
 	swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
 
-    for (;;) {
-        chThdSleepMilliseconds(250);
+for (;;) {
+    chThdSleepMilliseconds(250);
 
-		// get input voltage
-		voltage = mc_interface_get_input_voltage_filtered();
-		watt = (mc_interface_get_tot_current_in_filtered() * voltage)/10.0f;
-		duty = mc_interface_get_duty_cycle_now()*100.0f;
-		uint32_t vmin = (uint32_t) mcconf->l_min_vin;
-		uint32_t vmax = (uint32_t) mcconf->l_max_vin;
+    // Get current values
+    voltage = mc_interface_get_input_voltage_filtered();
+    watt = (mc_interface_get_tot_current_in_filtered() * voltage) / 10.0f;
+    duty = mc_interface_get_duty_cycle_now() * 100.0f;
 
-		// get battery level from voltage
-		if (voltage < vmin) {
-			level = 0.0f;
-		} else if ((voltage >= vmin) && (voltage <= vmax) ){
-			level = (voltage - vmin) * 100.0f / (vmax - vmin);
-		} else {
-			level = 100.0f;
-		}
+    // Extract integer digits from current values
+    voltageInt = (uint32_t) voltage;
+    wattInt = (uint32_t) watt;
+    dutyInt = (uint32_t) duty;
 
-		swi2cMasterLedDigitsUpper( (uint32_t) watt*10 );
-		swi2cMasterLedBattLevel( (uint32_t)level );
-		swi2cMasterLedDigitsLower( (uint32_t) duty );
+    // Check if integer digits have changed
+    if (voltageInt != prevVoltageInt || wattInt != prevWattInt || dutyInt != prevDutyInt) {
+        // Update previous integer digits
+        prevVoltageInt = voltageInt;
+        prevWattInt = wattInt;
+        prevDutyInt = dutyInt;
 
-    }
+        // Perform the necessary actions when integer digits have changed
+        uint32_t vmin = (uint32_t) mcconf->l_min_vin;
+        uint32_t vmax = (uint32_t) mcconf->l_max_vin;
+
+        if (voltage < vmin) {
+            level = 0.0f;
+        } else if ((voltage >= vmin) && (voltage <= vmax)) {
+            level = (voltage - vmin) * 100.0f / (vmax - vmin);
+        } else {
+            level = 100.0f;
+        }
+
+		swi2cMasterLedBattLevel( (uint32_t) level );
+        swi2cMasterLedDigitsUpper( (uint32_t) watt*10 );
+		swi2cMasterLedDigitsLower( dutyInt );
+
+    	}
+	}
 }
 
 

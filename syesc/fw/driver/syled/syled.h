@@ -45,7 +45,6 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 #define SIZE_MATRIX_COL		            11
 #define SIZE_MATRIX_ROW		            8
 
-
 // Battery status
 #define SLED_STATUS_COLUM				 0x04
 

@@ -619,13 +619,15 @@ for (;;) {
 
     // Get current values
     voltage = mc_interface_get_input_voltage_filtered();
-    watt = (mc_interface_get_tot_current_in_filtered() * voltage) / 10.0f;
+    watt = mc_interface_stat_power_avg() ;
     duty = mc_interface_get_duty_cycle_now() * 100.0f;
 
     // Extract integer digits from current values
     voltageInt = (uint32_t) voltage;
     wattInt = (uint32_t) watt;
     dutyInt = (uint32_t) duty;
+
+
 
     // Check if integer digits have changed
     if (voltageInt != prevVoltageInt || wattInt != prevWattInt || dutyInt != prevDutyInt) {
@@ -647,7 +649,7 @@ for (;;) {
         }
 
 		swi2cMasterLedBattLevel( (uint32_t) level );
-        swi2cMasterLedDigitsUpper( (uint32_t) watt*10 );
+        swi2cMasterLedDigitsUpper( wattInt );
 		swi2cMasterLedDigitsLower( dutyInt );
 
     	}

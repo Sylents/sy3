@@ -592,6 +592,7 @@ THD_FUNCTION(display_thread, arg) {
 
 	float voltage = 0;
 	float watt = 0;
+	float current = 0;
 	float level = 0;
 	float duty = 0;
 	uint32_t prevVoltageInt = 0;
@@ -600,6 +601,7 @@ THD_FUNCTION(display_thread, arg) {
 	uint32_t voltageInt = 0;
     uint32_t wattInt = 0;
     uint32_t dutyInt = 0;
+    uint32_t currentInt = 0;
 	uint8_t txbuf[1];
 
     volatile mc_configuration *mcconf = (volatile mc_configuration*) mc_interface_get_configuration();
@@ -621,12 +623,13 @@ for (;;) {
     voltage = mc_interface_get_input_voltage_filtered();
     watt = mc_interface_stat_power_avg() ;
     duty = mc_interface_get_duty_cycle_now() * 100.0f;
+    current = mc_interface_get_tot_current_in();
+			//	mc_interface_get_tot_current_filtered();
 
     // Extract integer digits from current values
     voltageInt = (uint32_t) voltage;
     wattInt = (uint32_t) watt;
     dutyInt = (uint32_t) duty;
-
 
 
     // Check if integer digits have changed
@@ -635,6 +638,7 @@ for (;;) {
         prevVoltageInt = voltageInt;
         prevWattInt = wattInt;
         prevDutyInt = dutyInt;
+		currentInt = (uint32_t) current;
 
         // Perform the necessary actions when integer digits have changed
         uint32_t vmin = (uint32_t) mcconf->l_min_vin;
@@ -649,7 +653,7 @@ for (;;) {
         }
 
 		swi2cMasterLedBattLevel( (uint32_t) level );
-        swi2cMasterLedDigitsUpper( wattInt );
+        swi2cMasterLedDigitsUpper( currentInt );
 		swi2cMasterLedDigitsLower( dutyInt );
 
     	}

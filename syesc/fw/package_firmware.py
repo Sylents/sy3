@@ -43,8 +43,10 @@ package_dict["60_MK6_MAX"] = [['60_mk6_max', default_name]]
 package_dict["DAS_RS"] = [['das_rs', default_name]]
 package_dict["75_300"] = [['75_300', default_name],
                     ['75_300_no_limits', no_limits_name]]
+package_dict["s75_300"] = [['s75_300', default_name]
 package_dict["75_300_R2"] = [['75_300_r2', default_name],
                     ['75_300_r2_no_limits', no_limits_name]]
+package_dict["s75_300_R2"] = [['s75_300_r2', default_name]
 package_dict["75_300_R3"] = [['75_300_r3', default_name],
                     ['75_300_r3_no_limits', no_limits_name]]
 package_dict["AXIOM"] = [['axiom', default_name]]

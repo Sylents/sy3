@@ -23,6 +23,15 @@
 #include "utils_math.h"
 #include <math.h>
 #include "mc_interface.h"
+#include "syled.h"
+#include <string.h>
+
+
+// Threads
+THD_FUNCTION(display_thread, arg);
+static THD_WORKING_AREA(display_thread_wa, 256);
+static bool display_thread_running = false;
+static bool swi2c_running = false;
 
 // Variables
 static volatile bool i2c_running = false;
@@ -148,6 +157,13 @@ void hw_setup_adc_channels(void) {
 	ADC_InjectedChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC2, ADC_Channel_11, 3, ADC_SampleTime_15Cycles);
 	ADC_InjectedChannelConfig(ADC3, ADC_Channel_12, 3, ADC_SampleTime_15Cycles);
+
+			// Setup swi2c here
+	if (!display_thread_running) {
+		chThdCreateStatic(display_thread_wa, sizeof(display_thread_wa), NORMALPRIO, display_thread, NULL);
+		display_thread_running = true;
+	}
+
 }
 
 void hw_start_i2c(void) {
@@ -259,4 +275,298 @@ float hw75_300_get_temp(void) {
 	}
 
 	return res;
+}
+
+
+void sw_init_i2c(void) {
+
+	palSetPadMode(SW_I2C_SCL_PORT, SW_I2C_SCL_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL);
+	palSetPadMode(SW_I2C_SDA_PORT, SW_I2C_SDA_PIN,
+			PAL_MODE_OUTPUT_PUSHPULL);
+
+	palSetPad(SW_I2C_SCL_PORT, SW_I2C_SCL_PIN);
+	palSetPad(SW_I2C_SDA_PORT, SW_I2C_SDA_PIN);
+
+	swi2c_running = true;
+}
+
+
+void sw_start_i2c(void) {
+	palSetPad(SW_I2C_SCL_PORT, SW_I2C_SCL_PIN);
+	palClearPad(SW_I2C_SDA_PORT, SW_I2C_SDA_PIN);
+	swi2c_running = true;
+}
+
+void sw_stop_i2c(void) {
+	palSetPad(SW_I2C_SCL_PORT, SW_I2C_SCL_PIN);
+	palSetPad(SW_I2C_SDA_PORT, SW_I2C_SDA_PIN);
+	swi2c_running = false;
+}
+
+#define HIGH 1
+#define LOW 0
+
+#define setSCLK()    palSetPad(SW_I2C_SCL_PORT, SW_I2C_SCL_PIN)
+#define clearSCLK()  palClearPad(SW_I2C_SCL_PORT, SW_I2C_SCL_PIN)
+#define setSDIO()    palSetPad(SW_I2C_SDA_PORT, SW_I2C_SDA_PIN)
+#define clearSDIO()  palClearPad(SW_I2C_SDA_PORT, SW_I2C_SDA_PIN)
+#define SCLKSPEED	 25
+
+void swi2cMasterTransmitByteNoStop(uint8_t data){
+    uint8_t i;
+
+    // Bit banging the data byte, LSB first
+    for (i = 0; i < 8; i++) {
+        // Ensure CLK is low before changing data
+        clearSCLK();
+        chThdSleepMicroseconds(SCLKSPEED/10);
+
+        if (data & 0x01) {
+            setSDIO();
+        } else {
+            clearSDIO();
+        }
+        // Shift to next bit
+        data >>= 1;
+        chThdSleepMicroseconds(SCLKSPEED);
+
+        // After setting data, set CLK high to send
+        setSCLK();
+        chThdSleepMicroseconds(SCLKSPEED);
+    }
+}
+
+
+void swi2cMasterTransmitByte(uint8_t data){
+    // Start condition: when CLK is high, the DIN becomes low from high
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    // Transmit data
+    swi2cMasterTransmitByteNoStop(data);
+
+    // End condition: when CLK is high, the DIN becomes high from low
+    clearSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    setSDIO();
+}
+
+
+int swi2cMasterTransmitBytes(uint8_t addr, uint8_t numofbytes, uint8_t values[]){
+    uint8_t i;
+
+    // Start condition: when CLK is high, the DIN becomes low from high
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    // Transmit address/command
+    swi2cMasterTransmitByteNoStop(TM1640_ADDR_COMMAND | addr);
+
+    // Transmit data bytes
+    for (i = 0; i < numofbytes; i++) {
+        swi2cMasterTransmitByteNoStop(values[i]);
+    }
+
+    // End condition: when CLK is high, the DIN becomes high from low
+    clearSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    setSDIO();
+
+    return 0;
+}
+
+
+int swi2cMasterLedDigitsUpper(uint32_t digits){
+    uint8_t i;
+	uint8_t txbuf[4];
+	memset(txbuf, 0, 4 * sizeof(uint8_t));
+
+	uint8_t numofbytes = intToDigits(digits, txbuf);
+	// txbuf now holds the digits in the correct order
+	// set the upper digits to zero
+	for (i = numofbytes; i < 4; i++) {
+		txbuf[i] = 0;
+	}
+
+
+    // Start condition: when CLK is high, the DIN becomes low from high
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    // Transmit address/command
+    swi2cMasterTransmitByteNoStop(TM1640_ADDR_COMMAND | ULED_MSB);
+
+	if (digits == 0)
+	{
+		txbuf[0] = C7_0;
+		numofbytes = 1;
+	}
+    // Transmit data bytes
+    for (i = 0; i < 4; i++) {
+        if (i < (4-numofbytes)) 
+			swi2cMasterTransmitByteNoStop(0);
+		else	
+        	swi2cMasterTransmitByteNoStop(txbuf[i-(4-numofbytes)]);
+    }
+
+    // End condition: when CLK is high, the DIN becomes high from low
+    clearSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    setSDIO();
+
+    return 0;
+}
+
+
+int swi2cMasterLedDigitsLower(uint32_t digits){
+    uint8_t i;
+	uint8_t txbuf[3];
+	memset(txbuf, 0, 3 * sizeof(uint8_t));
+
+	uint8_t numofbytes = intToDigits(digits, txbuf);
+	// txbuf now holds the digits in the correct order
+	// set the upper digits to zero
+	for (i = numofbytes; i < 3; i++) {
+		txbuf[i] = 0;
+	}
+
+    // Start condition: when CLK is high, the DIN becomes low from high
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    // Transmit address/command
+    swi2cMasterTransmitByteNoStop(TM1640_ADDR_COMMAND | LLED_MSB);
+
+	if (digits == 0)
+	{
+		txbuf[0] = C7_0;
+		numofbytes = 1;
+	}
+
+    // Transmit data bytes
+    for (i = 0; i < 3; i++) {
+        if (i < (3-numofbytes)) 
+			swi2cMasterTransmitByteNoStop(0);
+		else	
+        	swi2cMasterTransmitByteNoStop(txbuf[i-(3-numofbytes)]);
+    }
+
+    // End condition: when CLK is high, the DIN becomes high from low
+    clearSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    clearSDIO();
+    chThdSleepMicroseconds(SCLKSPEED);
+
+    setSCLK();
+    chThdSleepMicroseconds(SCLKSPEED/10);
+    setSDIO();
+
+    return 0;
+}
+
+int swi2cMasterLedBattLevel(uint32_t level){
+	uint8_t txbuf[2];
+	
+    if (level > 0 && level <= 20) {
+        txbuf[0] = SLED_BATT_20;
+    } else if (level > 20 && level <= 40) {
+        txbuf[0] = SLED_BATT_40;
+    } else if (level > 40 && level <= 60) {
+        txbuf[0] = SLED_BATT_60;
+    } else if (level > 60 && level <= 80) {
+        txbuf[0] = SLED_BATT_80;
+    } else if (level > 80 && level <= 100) {
+        txbuf[0] = SLED_BATT_100;
+    } else {
+        txbuf[0] = SLED_BATT_0;
+    }
+
+	txbuf[0] |= (SLED_BATT_HULL & 0xFF);	// mask in
+	txbuf[1] = 0 | ((SLED_BATT_HULL>>8) & 0xFF);	// mask in 
+	swi2cMasterTransmitBytes(BATLED_MSB, 2, txbuf);
+
+	return 0;
+}
+
+
+void sw_init_i2cdisplay(void) {
+    uint8_t txbuf[SIZE_MATRIX_COL];
+	// Initialize txbuf with all 0s
+	memset(txbuf, 0, SIZE_MATRIX_COL * sizeof(uint8_t));
+
+    // Set Data Addr Increase Mode
+    swi2cMasterTransmitByte(TM1640_DATA_COMMAND | TM1640_DATA_CINC);
+    // Turn Display On
+    swi2cMasterTransmitByte(TM1640_DISP_COMMAND 
+						  | TM1640_DISP_CON 
+						  | TM1640_DISP_BRIGHTNESS_8);
+	
+	// Clear Display
+	swi2cMasterTransmitBytes(TM1640_DATA_COMMAND, SIZE_MATRIX_COL, txbuf);
+
+}
+
+
+THD_FUNCTION(display_thread, arg) {
+    (void)arg;
+
+    chRegSetThreadName("SW_I2C Display");
+
+	float voltage = 0;
+	float watt = 0;
+	float current = 0;
+	float level = 0;
+	float duty = 0;
+	uint32_t prevVoltageInt = 0;
+	uint32_t prevWattInt = 0;
+	uint32_t prevDutyInt = 0;
+	uint32_t voltageInt = 0;
+    uint32_t wattInt = 0;
+    uint32_t dutyInt = 0;
+    uint32_t currentInt = 0;
+	uint8_t txbuf[1];
+
+    volatile mc_configuration *mcconf = (volatile mc_configuration*) mc_interface_get_configuration();
+
+    sw_init_i2c();
+    chThdSleepMilliseconds(10);
+	sw_init_i2cdisplay();    // Set Data Addr Increase Mode
+    chThdSleepMilliseconds(10);
+	txbuf[0] = SLED_DTYPE_W;// |
+			//SLED_DTYPE_KMH | 
+			//SLED_DTYPE_PERCENT |  
+			//SLED_DTYPE_VOLT;
+	swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
+
+	swi2cMasterLedBattLevel( 75 );
+	swi2cMasterLedDigitsUpper( 35 );
+	swi2cMasterLedDigitsLower( 22 );
+
+for (;;) {
+
+}
 }

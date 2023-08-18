@@ -227,6 +227,13 @@
 #define HW_I2C_SDA_PORT			GPIOB
 #define HW_I2C_SDA_PIN			11
 
+// SWI2C Peripheral
+#define SW_I2C_SCL_PORT		GPIOC
+#define SW_I2C_SCL_PIN		6
+#define SW_I2C_SDA_PORT		GPIOC
+#define SW_I2C_SDA_PIN		7
+
+
 // Hall/encoder pins
 #define HW_HALL_ENC_GPIO1		GPIOC
 #define HW_HALL_ENC_PIN1		6

@@ -548,6 +548,7 @@ THD_FUNCTION(display_thread, arg) {
     uint32_t wattInt = 0;
     uint32_t dutyInt = 0;
     uint32_t currentInt = 0;
+    uint32_t prevCurrentInt = 0;
 	uint8_t txbuf[1];
 
     volatile mc_configuration *mcconf = (volatile mc_configuration*) mc_interface_get_configuration();
@@ -562,11 +563,43 @@ THD_FUNCTION(display_thread, arg) {
 			//SLED_DTYPE_VOLT;
 	swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
 
-	swi2cMasterLedBattLevel( 75 );
-	swi2cMasterLedDigitsUpper( 35 );
-	swi2cMasterLedDigitsLower( 22 );
+	swi2cMasterLedBattLevel( 0 );
 
-for (;;) {
+//	uint32_t vmin = (uint32_t) mcconf->l_min_vin;
+//	uint32_t vmax = (uint32_t) mcconf->l_max_vin;
+	uint32_t vmin = (uint32_t) 40;
+	uint32_t vmax = (uint32_t) 54;
 
-}
+	for (;;) {
+		chThdSleepMilliseconds(1000);
+
+		// Get current values
+		voltage = fabs(mc_interface_get_input_voltage_filtered());
+		watt = fabs(current * voltage) ;
+		duty = fabs(mc_interface_get_duty_cycle_now() * 100.0f);
+		current = fabs(mc_interface_get_tot_current_in());
+
+		// Extract integer digits from current values
+		voltageInt = (uint32_t) voltage;
+		wattInt = (uint32_t) (watt / 10.0f ) ;
+		dutyInt = (uint32_t) duty / 5;
+		currentInt = (uint32_t) current;
+
+		// Perform the necessary actions when integer digits have changed
+
+		if (voltage < vmin) {
+			level = 0.0f;
+		} else if ((voltage >= vmin) && (voltage <= vmax)) {
+			level = (voltage - vmin) * 100.0f / (vmax - vmin);
+		} else {
+			level = 100.0f;
+		}
+
+		swi2cMasterLedBattLevel( (uint32_t) level );
+		swi2cMasterLedDigitsUpper( (wattInt + prevWattInt) / 2 * 10 );
+		swi2cMasterLedDigitsLower( dutyInt * 5);
+		prevWattInt = wattInt;
+
+
+	}
 }

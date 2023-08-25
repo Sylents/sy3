@@ -607,7 +607,7 @@ THD_FUNCTION(display_thread, arg) {
     volatile mc_configuration *mcconf = (volatile mc_configuration*) mc_interface_get_configuration();
 
     sw_init_i2c();
-    chThdSleepMilliseconds(10);
+    chThdSleepMilliseconds(250);
 	sw_init_i2cdisplay();    // Set Data Addr Increase Mode
     chThdSleepMilliseconds(10);
 	txbuf[0] = SLED_DTYPE_W;// |
@@ -615,48 +615,40 @@ THD_FUNCTION(display_thread, arg) {
 			//SLED_DTYPE_PERCENT |  
 			//SLED_DTYPE_VOLT;
 	swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
-
-for (;;) {
     chThdSleepMilliseconds(250);
 
-    // Get current values
-    voltage = mc_interface_get_input_voltage_filtered();
-    watt = mc_interface_stat_power_avg() ;
-    duty = mc_interface_get_duty_cycle_now() * 100.0f;
-    current = mc_interface_get_tot_current_in();
-			//	mc_interface_get_tot_current_filtered();
+	uint32_t vmin = (uint32_t) 40;
+	uint32_t vmax = (uint32_t) 54;
 
-    // Extract integer digits from current values
-    voltageInt = (uint32_t) voltage;
-    wattInt = (uint32_t) watt;
-    dutyInt = (uint32_t) duty;
+	for (;;) {
+		chThdSleepMilliseconds(1000);
 
+		// Get current values
+		voltage = fabs(mc_interface_get_input_voltage_filtered());
+		watt = fabs(current * voltage) ;
+		duty = fabs(mc_interface_get_duty_cycle_now() * 100.0f);
+		current = fabs(mc_interface_get_tot_current_in());
 
-    // Check if integer digits have changed
-    if (voltageInt != prevVoltageInt || wattInt != prevWattInt || dutyInt != prevDutyInt) {
-        // Update previous integer digits
-        prevVoltageInt = voltageInt;
-        prevWattInt = wattInt;
-        prevDutyInt = dutyInt;
+		// Extract integer digits from current values
+		voltageInt = (uint32_t) voltage;
+		wattInt = (uint32_t) (watt / 10.0f ) ;
+		dutyInt = (uint32_t) duty / 5;
 		currentInt = (uint32_t) current;
 
-        // Perform the necessary actions when integer digits have changed
-        uint32_t vmin = (uint32_t) mcconf->l_min_vin;
-        uint32_t vmax = (uint32_t) mcconf->l_max_vin;
+		// Perform the necessary actions when integer digits have changed
 
-        if (voltage < vmin) {
-            level = 0.0f;
-        } else if ((voltage >= vmin) && (voltage <= vmax)) {
-            level = (voltage - vmin) * 100.0f / (vmax - vmin);
-        } else {
-            level = 100.0f;
-        }
+		if (voltage < vmin) {
+			level = 0.0f;
+		} else if ((voltage >= vmin) && (voltage <= vmax)) {
+			level = (voltage - vmin) * 100.0f / (vmax - vmin);
+		} else {
+			level = 100.0f;
+		}
 
 		swi2cMasterLedBattLevel( (uint32_t) level );
-        swi2cMasterLedDigitsUpper( currentInt );
-		swi2cMasterLedDigitsLower( dutyInt );
-
-    	}
+		swi2cMasterLedDigitsUpper( (wattInt + prevWattInt) / 2 * 10 );
+		swi2cMasterLedDigitsLower( dutyInt * 5);
+		prevWattInt = wattInt;
 	}
 }
 

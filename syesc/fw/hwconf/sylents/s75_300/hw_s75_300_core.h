@@ -229,7 +229,7 @@
 
 // SWI2C Peripheral
 #define SW_I2C_SCL_PORT		GPIOC
-#define SW_I2C_SCL_PIN		6
+#define SW_I2C_SCL_PIN		8
 #define SW_I2C_SDA_PORT		GPIOC
 #define SW_I2C_SDA_PIN		7
 

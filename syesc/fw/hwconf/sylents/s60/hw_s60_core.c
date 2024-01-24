@@ -596,13 +596,8 @@ THD_FUNCTION(display_thread, arg) {
     float current = 0;
     float level = 0;
     float duty = 0;
-//    uint32_t prevVoltageInt = 0;
-//    uint32_t prevWattInt = 0;
-//    uint32_t prevDutyInt = 0;
-//    uint32_t voltageInt = 0;
     uint32_t wattInt = 0;
     uint32_t dutyInt = 0;
-//    uint32_t currentInt = 0;
     uint8_t txbuf[1];
     float currentSamples[CURRENT_SAMPLES_NUM] = {0};
     int currentSampleIndex = 0;
@@ -641,10 +636,8 @@ THD_FUNCTION(display_thread, arg) {
         current = currentSum / CURRENT_SAMPLES_NUM;
 
         // Extract integer digits from current values
-//        voltageInt = (uint32_t) voltage;
         wattInt = (uint32_t) (watt / 10.0f);
         dutyInt = (uint32_t) duty / 5;
-//        currentInt = (uint32_t) (current );
 
         if (voltage < vmin) {
             level = 0.0f;
@@ -657,7 +650,5 @@ THD_FUNCTION(display_thread, arg) {
         swi2cMasterLedBattLevel((uint32_t) level);
         swi2cMasterLedDigitsUpper(wattInt * 10 );
         swi2cMasterLedDigitsLower(dutyInt * 5);
-//        prevWattInt = wattInt;
     }
 }
-// 

@@ -27,6 +27,7 @@
 #include "mc_interface.h"
 #include "syled.h"
 #include <string.h>
+#include "conf_general.h"
 
 // Threads
 THD_FUNCTION(display_thread, arg);
@@ -613,13 +614,31 @@ THD_FUNCTION(display_thread, arg) {
             //SLED_DTYPE_PERCENT |  
             //SLED_DTYPE_VOLT;
     swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
-    chThdSleepMilliseconds(250);
+
+	
+	swi2cMasterLedDigitsUpper(FW_VERSION_MAJOR*100 + FW_VERSION_MINOR);
+	swi2cMasterLedDigitsLower(HW_MAJOR*10 + HW_MINOR);
+    
+	chThdSleepMilliseconds(250);
 
     uint32_t vmin = (uint32_t) 40;
     uint32_t vmax = (uint32_t) 54;
 
     for (;;) {
         chThdSleepMilliseconds(1000);
+		mc_state state1 = mc_interface_get_state();
+
+		if ((state1 != MC_STATE_RUNNING) 
+			) {
+	// set alert
+		    txbuf[0] = //SLED_STATUS_ALERT1 |
+			SLED_STATUS_CHRG;
+    		swi2cMasterTransmitBytes(SLED_STATUS_COLUM, 1, txbuf);
+		} else {
+		    txbuf[0] = 0x0;
+    		swi2cMasterTransmitBytes(SLED_STATUS_COLUM, 1, txbuf);
+		}
+
 
         // Get current values
         voltage = fabs(mc_interface_get_input_voltage_filtered());
@@ -647,8 +666,9 @@ THD_FUNCTION(display_thread, arg) {
             level = 100.0f;
         }
 
+
         swi2cMasterLedBattLevel((uint32_t) level);
         swi2cMasterLedDigitsUpper(wattInt * 10 );
-        swi2cMasterLedDigitsLower(dutyInt * 5);
+	    swi2cMasterLedDigitsLower(dutyInt * 5);
     }
 }

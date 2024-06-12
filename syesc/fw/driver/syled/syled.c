@@ -7,7 +7,7 @@ const unsigned char ledsegments[SIZE_MATRIX_COL] = {
     C7_1,    // Batt 1
     C7_2,    // Status Header 2
     C7_3,    // Status Side 3
-    C7_4,    // digit  4
+    C7_4,    // digit 4
     C7_5,    // digit 5
     C7_6,    // digit 6
     C7_7,    // digit 7

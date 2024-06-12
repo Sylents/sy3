@@ -46,7 +46,13 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 #define SIZE_MATRIX_ROW		            8
 
 // Battery status
-#define SLED_STATUS_COLUM				 0x04
+#define SLED_STATUS_COLUM				 0x2
+#define SLED_STATUS_NONE					(0x00)
+#define SLED_STATUS_ALERT1					(1<<0)
+#define SLED_STATUS_ALERT2					(1<<1)
+#define SLED_STATUS_BLE1              		(1<<2)
+#define SLED_STATUS_BLE2					(1<<3)
+#define SLED_STATUS_CHRG					(1<<4)
 
 #define SLED_BATT_NONE					(0x00)
 #define SLED_BATT_100				    (0x001F<<0)
@@ -65,8 +71,6 @@ ADDR COMMAND + VAL1 + .. VALN       // sets the address and the value to be disp
 #define SLED_DTYPE_PERCENT              (1<<2)
 #define SLED_DTYPE_VOLT					(1<<3)
 #define SLED_DTYPE_TIME					(1<<4)
-
-
 
 
 

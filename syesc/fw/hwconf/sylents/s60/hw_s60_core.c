@@ -628,8 +628,7 @@ THD_FUNCTION(display_thread, arg) {
         chThdSleepMilliseconds(1000);
 		mc_state state1 = mc_interface_get_state();
 
-		if ((state1 != MC_STATE_RUNNING) 
-			) {
+		if (state1 != MC_STATE_RUNNING) {
 	// set alert
 		    txbuf[0] = //SLED_STATUS_ALERT1 |
 			SLED_STATUS_CHRG;

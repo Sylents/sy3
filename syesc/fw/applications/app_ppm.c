@@ -90,7 +90,7 @@ float app_ppm_get_decoded_level(void) {
 
 void app_ppm_detach(bool detach) {
 	ppm_detached = detach;
-}
+} 
 
 void app_ppm_override(float val) {
 	ppm_override = val;

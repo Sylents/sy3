@@ -421,7 +421,8 @@ int swi2cMasterLedDigitsLower(uint32_t digits){
 
 	if (digits == 0)
 	{
-		txbuf[0] = C7_0;
+//		txbuf[0] = C7_0;
+		txbuf[0] = 0;
 		numofbytes = 1;
 	}
 
@@ -444,6 +445,15 @@ int swi2cMasterLedDigitsLower(uint32_t digits){
     setSDIO();
 
     return 0;
+}
+
+
+int swi2cMasterLedDigitsLowerNull(uint32_t digits){
+	uint8_t txbuf[3];
+	memset(txbuf, 0, 3 * sizeof(uint8_t));
+
+    return 0;
+
 }
 
 int swi2cMasterLedBattLevel(uint32_t level){
@@ -587,75 +597,87 @@ void sw_init_i2cdisplay(void) {
 
 #define CURRENT_SAMPLES_NUM 10
 
+// Configuration options
+typedef enum {
+    CURVE_LINEAR,
+    CURVE_QUADRATIC
+} curve_type_t;
+
+static curve_type_t power_curve_type = CURVE_QUADRATIC; // Default to linear
+static uint32_t min_position = 0;   // Minimum duty position (0%)
+static uint32_t max_position = 47;  // Maximum duty position (100%)
+static uint32_t max_value = 1000;   // Maximum wattage value (1000W)
+
+// Function to map dutyInt to wattage
+uint32_t map_duty_to_wattage(uint32_t dutyInt) {
+    uint32_t adjusted_duty;
+
+    // Scale dutyInt based on min and max position
+    if (dutyInt <= min_position) {
+        adjusted_duty = 0;
+//    } else if (dutyInt >= max_position) {
+//        adjusted_duty = 100;
+    } else {
+        adjusted_duty = (dutyInt - min_position) * 100 / (max_position - min_position);
+    }
+
+    // Calculate wattage based on the selected curve type
+    if (power_curve_type == CURVE_LINEAR) {
+        return adjusted_duty * max_value / 100;
+    } else if (power_curve_type == CURVE_QUADRATIC) {
+        return (adjusted_duty * adjusted_duty * max_value) / (100 * 100);
+    }
+
+    return 0; // Should never reach here
+}
+
 THD_FUNCTION(display_thread, arg) {
     (void)arg;
 
     chRegSetThreadName("SW_I2C Display");
 
     float voltage = 0;
-    float watt = 0;
-    float current = 0;
     float level = 0;
     float duty = 0;
     uint32_t wattInt = 0;
     uint32_t dutyInt = 0;
     uint8_t txbuf[1];
-    float currentSamples[CURRENT_SAMPLES_NUM] = {0};
-    int currentSampleIndex = 0;
-
-//    volatile mc_configuration *mcconf = (volatile mc_configuration*) mc_interface_get_configuration();
 
     sw_init_i2c();
     chThdSleepMilliseconds(250);
     sw_init_i2cdisplay();    // Set Data Addr Increase Mode
     chThdSleepMilliseconds(10);
-    txbuf[0] = SLED_DTYPE_W;// |
-            //SLED_DTYPE_KMH | 
-            //SLED_DTYPE_PERCENT |  
-            //SLED_DTYPE_VOLT;
+    txbuf[0] = SLED_DTYPE_W;
     swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
 
-	
-	swi2cMasterLedDigitsUpper(FW_VERSION_MAJOR*100 + FW_VERSION_MINOR);
-	swi2cMasterLedDigitsLower(HW_MAJOR*10 + HW_MINOR);
-    
-	chThdSleepMilliseconds(250);
+    swi2cMasterLedDigitsUpper(FW_VERSION_MAJOR * 100 + FW_VERSION_MINOR);
+    swi2cMasterLedDigitsLower(HW_MAJOR * 10 + HW_MINOR);
 
-    uint32_t vmin = (uint32_t) 40;
-    uint32_t vmax = (uint32_t) 54;
+    chThdSleepMilliseconds(250);
+
+    uint32_t vmin = (uint32_t)40;
+    uint32_t vmax = (uint32_t)54;
 
     for (;;) {
-        chThdSleepMilliseconds(1000);
-		mc_state state1 = mc_interface_get_state();
+        chThdSleepMilliseconds(250);
+        mc_state state1 = mc_interface_get_state();
 
-		if (state1 != MC_STATE_RUNNING) {
-	// set alert
-		    txbuf[0] = //SLED_STATUS_ALERT1 |
-			SLED_STATUS_CHRG;
-    		swi2cMasterTransmitBytes(SLED_STATUS_COLUM, 1, txbuf);
-		} else {
-		    txbuf[0] = 0x0;
-    		swi2cMasterTransmitBytes(SLED_STATUS_COLUM, 1, txbuf);
-		}
-
+        if (state1 != MC_STATE_RUNNING) {
+            // set alert
+            txbuf[0] = SLED_STATUS_CHRG;
+            swi2cMasterTransmitBytes(SLED_STATUS_COLUM, 1, txbuf);
+        } else {
+            txbuf[0] = 0x0;
+            swi2cMasterTransmitBytes(SLED_STATUS_COLUM, 1, txbuf);
+        }
 
         // Get current values
         voltage = fabs(mc_interface_get_input_voltage_filtered());
-        watt = fabs(current * voltage);
         duty = fabs(mc_interface_get_duty_cycle_now() * 100.0f);
+        dutyInt = (uint32_t)duty;
 
-        // Filter current
-        currentSamples[currentSampleIndex] = fabs(mc_interface_get_tot_current_in());
-        currentSampleIndex = (currentSampleIndex + 1) % CURRENT_SAMPLES_NUM;
-        float currentSum = 0;
-        for (int i = 0; i < CURRENT_SAMPLES_NUM; i++) {
-            currentSum += currentSamples[i];
-        }
-        current = currentSum / CURRENT_SAMPLES_NUM;
-
-        // Extract integer digits from current values
-        wattInt = (uint32_t) (watt / 10.0f);
-        dutyInt = (uint32_t) duty / 5;
+        // Use the new mapping function to determine wattage
+        wattInt = map_duty_to_wattage(dutyInt);
 
         if (voltage < vmin) {
             level = 0.0f;
@@ -665,9 +687,8 @@ THD_FUNCTION(display_thread, arg) {
             level = 100.0f;
         }
 
-
-        swi2cMasterLedBattLevel((uint32_t) level);
-        swi2cMasterLedDigitsUpper(wattInt * 10 );
-	    swi2cMasterLedDigitsLower(dutyInt * 5);
+        swi2cMasterLedBattLevel((uint32_t)level);
+        swi2cMasterLedDigitsUpper(wattInt);
+        swi2cMasterLedDigitsLower(dutyInt);
     }
 }

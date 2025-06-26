@@ -28,6 +28,7 @@
 #include "syled.h"
 #include <string.h>
 #include "conf_general.h"
+#include "app.h"
 
 // Threads
 THD_FUNCTION(display_thread, arg);
@@ -641,14 +642,13 @@ THD_FUNCTION(display_thread, arg) {
     float duty = 0;
     uint32_t wattInt = 0;
     uint32_t dutyInt = 0;
+	uint32_t lever_pos_int = 0;
     uint8_t txbuf[1];
 
     sw_init_i2c();
     chThdSleepMilliseconds(250);
     sw_init_i2cdisplay();    // Set Data Addr Increase Mode
     chThdSleepMilliseconds(10);
-    txbuf[0] = SLED_DTYPE_W;
-    swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
 
     swi2cMasterLedDigitsUpper(FW_VERSION_MAJOR * 100 + FW_VERSION_MINOR);
     swi2cMasterLedDigitsLower(HW_MAJOR * 10 + HW_MINOR);
@@ -658,23 +658,33 @@ THD_FUNCTION(display_thread, arg) {
     uint32_t vmin = (uint32_t)40;
     uint32_t vmax = (uint32_t)54;
 
+    txbuf[0] = SLED_DTYPE_W;
+    swi2cMasterTransmitBytes(SLED_DTYPE_COLUMN, 1, txbuf);
+	
     for (;;) {
         chThdSleepMilliseconds(250);
         mc_state state1 = mc_interface_get_state();
 
         if (state1 != MC_STATE_RUNNING) {
-            // set alert
+            // unlocked, eg at startup
             txbuf[0] = SLED_STATUS_CHRG;
             swi2cMasterTransmitBytes(SLED_STATUS_COLUM, 1, txbuf);
+            // Read lever position when not running
         } else {
             txbuf[0] = 0x0;
             swi2cMasterTransmitBytes(SLED_STATUS_COLUM, 1, txbuf);
+            // Get current values
         }
+		duty = fabs(mc_interface_get_duty_cycle_now() * 100.0f);
+		dutyInt = (uint32_t)duty;
+  		voltage = fabs(mc_interface_get_input_voltage_filtered());
+		float lever_pos = app_ppm_get_decoded_level();
+		if (fabsf(lever_pos) > 0.1) { // Check if lever is ±10% off center
+			lever_pos_int = (uint32_t)(fabsf(lever_pos) * 99.0); // Scale absolute value to 0-99
+		} else {
+			lever_pos_int = 0;
+		}
 
-        // Get current values
-        voltage = fabs(mc_interface_get_input_voltage_filtered());
-        duty = fabs(mc_interface_get_duty_cycle_now() * 100.0f);
-        dutyInt = (uint32_t)duty;
 
         // Use the average power from mc_interface_stat_power_avg for displaying wattage
         static uint32_t power_values[3] = {0, 0, 0};
@@ -703,7 +713,7 @@ THD_FUNCTION(display_thread, arg) {
         }
 
         swi2cMasterLedBattLevel((uint32_t)level);
-        swi2cMasterLedDigitsUpper(wattInt);
-        swi2cMasterLedDigitsLower(dutyInt);
+		swi2cMasterLedDigitsUpper(wattInt);
+        swi2cMasterLedDigitsLower(lever_pos_int); 	// formerly dutyInt
     }
 }

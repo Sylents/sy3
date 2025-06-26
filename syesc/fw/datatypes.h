@@ -1432,6 +1432,8 @@ typedef struct {
 	uint8_t num_vescs;
 } setup_values;
 
+#define POWER_AVG_SAMPLES 20
+
 typedef struct {
 	systime_t time_start;
 	double samples;
@@ -1445,6 +1447,9 @@ typedef struct {
 	float max_temp_mos;
 	double current_sum;
 	float max_current;
+	float power_buffer[POWER_AVG_SAMPLES];
+	int power_buffer_index;
+	int power_sample_count;
 } setup_stats;
 
 #define BACKUP_VAR_INIT_CODE				92891934

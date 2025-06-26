@@ -9,6 +9,12 @@ Embedded Systems Motor Control Firmware for the sylents electric jet drive forke
     - Battery Status
     - Current Throttle and or Power
 
+## Current Development Status
+The firmware has been customized for the Sylents electric jet drive with the following key features implemented:
+- **Custom LED Display Driver**: Integration of a custom driver (`syled`) for user status display, showing battery level, current throttle, and power output (wattage) on a TM1640-based LED display.
+- **I2C Communication for Display**: Software-based I2C communication (`swi2c`) to control the LED display, including functions for transmitting data and managing display digits for upper (wattage) and lower (duty cycle) segments.
+- **Power Calculation**: Actual power output is derived using a formula, rather than predefined power mapping curves, for accurate wattage calculation based on current conditions.
+- **Version Information**: The firmware supports version tracking with major and minor version numbers for both firmware (FW_VERSION_MAJOR, FW_VERSION_MINOR) and hardware (HW_MAJOR, HW_MINOR), displayed during initialization on the LED display.
 
 ## Top Level Directory Tree
 with focus on sylents related firmware modifications
@@ -29,9 +35,9 @@ with focus on sylents related firmware modifications
 ├───encoder                     # Encoder-related code for motor position sensing
 ├───hwconf                      # Hardware configuration files
 │   └───sylents
-│       ├───s60                 # Config for model s60
+│       ├───s60                 # Config for model s60, includes custom display and power curve logic
 │       │       hw_s60.h
-│       │       hw_s60_core.c
+│       │       hw_s60_core.c   # Custom implementation for LED display control and power mapping
 │       │       hw_s60_core.h
 │       │
 │       └───s75_300             # Config for model s75_300
@@ -53,7 +59,7 @@ with focus on sylents related firmware modifications
 
 
 # PC & Smartphone Applications
-The Firmware provides the API for external 3rd party applications. These external applications are not the scopt of this project.
+The Firmware provides the API for external 3rd party applications. These external applications are not the scope of this project.
 
 # Sylents Context
 

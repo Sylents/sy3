@@ -146,3 +146,18 @@ git push --tags
 ## License
 
 The software is released under the GNU General Public License version 3.0
+
+## Sylents VESC Firmware Release History
+
+This fork of the VESC firmware includes custom modifications for the Sylents electric jet drive, focusing on stabilizing the power value display to reduce flickering, particularly around the last 5% of the value. The following updates have been implemented:
+
+- **Removal of Rounding in Power Calculation**: In `motor/mc_interface.c`, the rounding of input voltage and current in the `update_stats` function has been removed to use unrounded values for `mc_interface_stat_power_avg()`. This ensures the raw power data is used for calculations.
+- **Rolling Window Average for Power**: In `hwconf/sylents/s60/hw_s60_core.c`, a rolling window average of the last 3 power values is applied in the `display_thread` function to smooth out fluctuations in the displayed power.
+- **Dynamic Rounding to 10%**: The `wattInt` value in `hwconf/sylents/s60/hw_s60_core.c` is rounded to the nearest multiple of 10% of the current calculated power value. This dynamic rounding approach provides stabilization tailored to the current power level, reducing flickering in the display.
+
+These changes aim to improve the user experience by providing a more stable and accurate power output display on the custom LED display for the Sylents electric jet drive.
+
+### Version History
+
+- **Version 1.1 (2025.06.25)**:
+  - Implemented stabilization techniques for power value display, including removal of rounding in power calculations, application of a rolling window average, and dynamic rounding to 10% of the current power value.

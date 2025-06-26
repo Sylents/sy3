@@ -51,6 +51,7 @@
 volatile uint16_t ADC_Value[HW_ADC_CHANNELS + HW_ADC_CHANNELS_EXTRA];
 volatile float ADC_curr_norm_value[6];
 
+
 typedef struct {
 	mc_configuration m_conf;
 	mc_fault_code m_fault_now;
@@ -129,6 +130,9 @@ typedef struct {
 	int info_argn;
 	float info_args[2];
 } fault_data_local;
+
+ // Define size for rolling average of power (using value from datatypes.h for 200ms at 10ms update rate)
+// POWER_AVG_SAMPLES is defined in datatypes.h
 
 static volatile fault_data_local m_fault_data = {0, FAULT_CODE_NONE, 0, 0, {0, 0}};
 
@@ -2681,7 +2685,18 @@ static void update_stats(volatile motor_if_state_t *motor) {
 	const double temp_mos = mc_interface_temp_fet_filtered();
 	const double temp_mot = mc_interface_temp_motor_filtered();
 
-	motor->m_stats.power_sum += power;
+	// Update rolling buffer for power average (last 20 samples)
+	if (motor->m_stats.power_sample_count < POWER_AVG_SAMPLES) {
+		motor->m_stats.power_sample_count++;
+	}
+	motor->m_stats.power_buffer[motor->m_stats.power_buffer_index] = (float)power;
+	motor->m_stats.power_buffer_index = (motor->m_stats.power_buffer_index + 1) % POWER_AVG_SAMPLES;
+	// Reset power_sum to avoid continuous accumulation
+	motor->m_stats.power_sum = 0.0;
+	for (int i = 0; i < motor->m_stats.power_sample_count; i++) {
+		motor->m_stats.power_sum += (double)motor->m_stats.power_buffer[i];
+	}
+
 	motor->m_stats.speed_sum += fabs(speed);
 	motor->m_stats.temp_mos_sum += temp_mos;
 	motor->m_stats.temp_motor_sum += temp_mot;
@@ -2721,7 +2736,10 @@ float mc_interface_stat_speed_max(void) {
 
 float mc_interface_stat_power_avg(void) {
 	volatile setup_stats *s = &motor_now()->m_stats;
-	double res = s->power_sum / s->samples;
+	if (s->power_sample_count == 0) {
+		return 0.0;
+	}
+	double res = s->power_sum / s->power_sample_count;
 	return res;
 }
 
@@ -2769,6 +2787,8 @@ void mc_interface_stat_reset(void) {
 	s->time_start = chVTGetSystemTimeX();
 	s->max_temp_mos = -300.0;
 	s->max_temp_motor = -300.0;
+	s->power_buffer_index = 0;
+	s->power_sample_count = 0;
 }
 
 static THD_FUNCTION(stat_thread, arg) {

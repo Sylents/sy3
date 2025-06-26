@@ -676,8 +676,23 @@ THD_FUNCTION(display_thread, arg) {
         duty = fabs(mc_interface_get_duty_cycle_now() * 100.0f);
         dutyInt = (uint32_t)duty;
 
-        // Use the new mapping function to determine wattage
-        wattInt = map_duty_to_wattage(dutyInt);
+        // Use the average power from mc_interface_stat_power_avg for displaying wattage
+        static uint32_t power_values[3] = {0, 0, 0};
+        static int power_index = 0;
+        power_values[power_index] = (uint32_t)mc_interface_stat_power_avg();
+        power_index = (power_index + 1) % 3;
+        uint32_t power_sum = 0;
+        for (int i = 0; i < 3; i++) {
+            power_sum += power_values[i];
+        }
+        wattInt = power_sum / 3;
+        // Round wattInt to the nearest multiple of 10% of the current value
+        if (wattInt > 0) {
+            uint32_t step = (uint32_t)(wattInt * 0.10);
+            if (step < 1) step = 1; // Avoid zero step size
+            uint32_t halfStep = step / 2;
+            wattInt = ((wattInt + halfStep) / step) * step;
+        }
 
         if (voltage < vmin) {
             level = 0.0f;
